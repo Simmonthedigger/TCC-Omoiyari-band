@@ -37,22 +37,35 @@ public class EnemyTwoPhaseMovement : MonoBehaviour
     {
         timer += Time.deltaTime;
 
-        // Verifica se é hora de trocar de fase
+        // FASE 1 -> FASE 2
         if (!isPhase2 && timer >= phase1.duration)
         {
             isPhase2 = true;
-            timer = 0; // Reseta o timer para a segunda fase começar do zero
-            phaseTransitionPos = transform.position; // Define a nova base de cálculo
+            timer = 0; // Reseta para a fase 2
+            phaseTransitionPos = transform.position; // Nova base para a fase 2
+        }
+        // FASE 2 -> FASE 1 (O LOOP ACONTECE AQUI)
+        else if (isPhase2 && timer >= phase2.duration)
+        {
+            isPhase2 = false;
+            timer = 0; // Reseta para a fase 1 voltar do início
+            phaseTransitionPos = transform.position; // Nova base para a fase 1 reiniciar de onde o inimigo está
         }
 
-        // Escolhe qual padrão usar
+        // Sempre usa a 'phaseTransitionPos' como ponto de partida atualizado
         MovementPattern current = isPhase2 ? phase2 : phase1;
-        Vector3 baseOrigin = isPhase2 ? phaseTransitionPos : startPos;
-
-        // Cálculo do Movimento
         Vector3 move = CalculatePattern(current, timer);
 
-        transform.position = baseOrigin + move;
+        // Corrigido: Se p.useCircular estiver ativo, o Cosseno/Seno no tempo 0 não é (0,0).
+        // Para evitar que o inimigo dê um pequeno "pulo/teletransporte" no frame 0 de cada fase,
+        // subtraímos o deslocamento inicial do círculo.
+        if (current.useCircular)
+        {
+            move.x -= Mathf.Cos(0) * current.circleRadius;
+            move.y -= Mathf.Sin(0) * current.circleRadius;
+        }
+
+        transform.position = phaseTransitionPos + move;
     }
 
     Vector3 CalculatePattern(MovementPattern p, float t)
